@@ -89,11 +89,11 @@ const sectionConfig = {
     ]
   },
   immunizations: {
-    title: "Shots and vaccines",
-    addLabel: "Add shot/vaccine",
+    title: "Immunizations",
+    addLabel: "Add immunization",
     collection: "immunizations",
     fields: [
-      ["name", "Vaccine/shot"],
+      ["name", "Immunization"],
       ["date", "Date received", "date"],
       ["location", "Location"],
       ["provider", "Provider/pharmacy"],
@@ -971,9 +971,9 @@ function essentialItems(person) {
       tab: "procedures"
     },
     {
-      label: "Shots and vaccines",
+      label: "Immunizations",
       complete: person.immunizations.length > 0,
-      detail: person.immunizations.length ? `${person.immunizations.length} immunization record${person.immunizations.length === 1 ? "" : "s"} added.` : "Add flu, COVID, pneumonia, shingles, tetanus, and other vaccine dates.",
+      detail: person.immunizations.length ? `${person.immunizations.length} immunization record${person.immunizations.length === 1 ? "" : "s"} added.` : "Add flu, COVID, pneumonia, shingles, tetanus, and other immunization dates.",
       action: "add-section-record",
       tab: "immunizations"
     },
@@ -1608,7 +1608,7 @@ function renderEmergencyPacket(person) {
       </div>
       ${packetList("Conditions", person.diagnoses || [], formatCondition)}
       ${packetList("Surgeries/Procedures", person.procedures || [], formatProcedure)}
-      ${packetList("Shots/Vaccines", person.immunizations || [], formatImmunization)}
+      ${packetList("Immunizations", person.immunizations || [], formatImmunization)}
       ${packetList("Insurance", person.insurance || [], formatInsurance)}
       ${packetList("Current Medications", person.medications.filter((med) => (med.status || "Active") === "Active"), (med) => `${med.name || "Unnamed"} - ${med.dose || "dose not recorded"} - ${med.schedule || "schedule not recorded"}${med.reason ? ` (${med.reason})` : ""}`)}
       ${packetList("Recent Vitals", [...(person.vitals || [])].sort((a, b) => vitalTimestamp(b) - vitalTimestamp(a)).slice(0, 3), (vital) => `${formatDate(vital.date)} ${vital.time || ""} - ${vitalSubtitle(vital) || "details not recorded"}`)}

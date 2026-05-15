@@ -31,7 +31,7 @@ Use fictional data and try these workflows:
 3. Add a medication, then edit it and change the status.
 4. Add a condition.
 5. Add a prior surgery/procedure with date and location.
-6. Add a shot/vaccine with date, location, and next due date.
+6. Add an immunization with date, location, and next due date.
 7. Add insurance coverage using fictional member details.
 8. Add vitals and review trend cards.
 9. Add a care team member.
