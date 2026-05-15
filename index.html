@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PersonalChart Dev Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Patient profiles">
+        <div class="brand-block">
+          <div class="brand-mark">PC</div>
+          <div>
+            <h1>PersonalChart</h1>
+            <p>Development Mode</p>
+          </div>
+        </div>
+
+        <button class="primary-action" id="addPersonBtn" type="button">+ Add person</button>
+        <div class="profile-list" id="profileList"></div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Local-first personal health record</p>
+            <h2 id="personName">Select a profile</h2>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-button" id="enableVaultBtn" type="button">Enable vault</button>
+            <button class="ghost-button is-hidden" id="lockVaultBtn" type="button">Lock vault</button>
+            <button class="ghost-button is-hidden" id="secureDocsBtn" type="button">Secure documents</button>
+            <button class="ghost-button" id="essentialIntakeBtn" type="button">Essential intake</button>
+            <button class="ghost-button" id="printReportBtn" type="button">Print summary</button>
+            <button class="ghost-button" id="emergencyPacketBtn" type="button">Emergency packet</button>
+            <button class="ghost-button" id="exportBackupBtn" type="button">Encrypted backup</button>
+            <label class="ghost-button file-button">
+              Restore backup
+              <input id="importBackupInput" type="file" accept="application/json,.pchart" />
+            </label>
+          </div>
+        </header>
+
+        <section class="patient-summary" id="patientSummary"></section>
+
+        <nav class="tabs" aria-label="Record sections">
+          <button class="tab is-active" data-tab="overview" type="button">Overview</button>
+          <button class="tab" data-tab="medications" type="button">Medications</button>
+          <button class="tab" data-tab="vitals" type="button">Vitals</button>
+          <button class="tab" data-tab="conditions" type="button">Conditions</button>
+          <button class="tab" data-tab="care" type="button">Care team</button>
+          <button class="tab" data-tab="visits" type="button">Visits</button>
+          <button class="tab" data-tab="documents" type="button">Documents</button>
+          <button class="tab" data-tab="resources" type="button">Resources</button>
+          <button class="tab" data-tab="legal" type="button">Legal</button>
+        </nav>
+
+        <section class="workspace" id="workspace"></section>
+      </main>
+    </div>
+
+    <dialog id="recordDialog">
+      <form method="dialog" id="recordForm">
+        <div class="dialog-header">
+          <h3 id="dialogTitle">Add record</h3>
+          <button class="icon-button" value="cancel" aria-label="Close" type="submit">x</button>
+        </div>
+        <div class="form-grid" id="formFields"></div>
+        <menu class="dialog-actions">
+          <button class="ghost-button" value="cancel" type="submit">Cancel</button>
+          <button class="primary-action" id="saveRecordBtn" value="default" type="submit">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="previewDialog" class="preview-dialog">
+      <div class="dialog-header preview-header">
+        <div>
+          <h3 id="previewTitle">Document preview</h3>
+          <p class="record-meta" id="previewMeta"></p>
+        </div>
+        <button class="icon-button" id="closePreviewBtn" aria-label="Close" type="button">x</button>
+      </div>
+      <div class="preview-body" id="previewBody"></div>
+      <div class="dialog-actions preview-actions">
+        <button class="ghost-button" id="openPreviewBtn" type="button">Open in new tab</button>
+        <button class="primary-action" id="printPreviewBtn" type="button">Print document</button>
+      </div>
+    </dialog>
+
+    <div class="vault-screen" id="vaultScreen">
+      <form class="vault-card" id="vaultForm">
+        <div class="brand-mark">PC</div>
+        <div>
+          <p class="eyebrow">Local encrypted vault</p>
+          <h2 id="vaultTitle">Loading PersonalChart</h2>
+          <p id="vaultMessage">Checking local storage.</p>
+        </div>
+        <label class="field">
+          <span class="field-label">Vault password</span>
+          <input id="vaultPassword" type="password" autocomplete="current-password" />
+        </label>
+        <button class="primary-action" id="unlockVaultBtn" type="submit">Unlock</button>
+        <p class="record-meta">Development vault uses browser Web Crypto with PBKDF2/AES-GCM. If the password is forgotten, encrypted local data cannot be recovered.</p>
+      </form>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

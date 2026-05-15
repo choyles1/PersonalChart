@@ -1,0 +1,18 @@
+{
+  "name": "personalchart-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local-first PersonalChart development prototype for personal health record workflows.",
+  "scripts": {
+    "start": "node dev-server.js",
+    "dev": "node dev-server.js",
+    "check": "node --check app.js && node --check dev-server.js"
+  },
+  "keywords": [
+    "personal-health-record",
+    "local-first",
+    "prototype",
+    "caregiver"
+  ],
+  "license": "UNLICENSED"
+}
