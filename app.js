@@ -72,6 +72,21 @@ const sectionConfig = {
       ["notes", "Notes", "textarea"]
     ]
   },
+  procedures: {
+    title: "Surgeries and procedures",
+    addLabel: "Add surgery/procedure",
+    collection: "procedures",
+    fields: [
+      ["name", "Surgery/procedure"],
+      ["date", "Date", "date"],
+      ["location", "Location"],
+      ["facility", "Facility"],
+      ["clinician", "Clinician/surgeon"],
+      ["reason", "Reason"],
+      ["outcome", "Outcome"],
+      ["notes", "Notes", "textarea"]
+    ]
+  },
   care: {
     title: "Care team",
     addLabel: "Add clinician",
@@ -177,6 +192,19 @@ const starterData = {
           onsetDate: "",
           clinician: "Dr. Alvarez",
           notes: "Family assists with medication review and appointments."
+        }
+      ],
+      procedures: [
+        {
+          id: "procedure-1",
+          name: "Cataract surgery",
+          date: "2022-06-15",
+          location: "Springfield, IL",
+          facility: "Memorial Outpatient Surgery Center",
+          clinician: "Dr. Patel",
+          reason: "Vision impairment",
+          outcome: "Completed without complications",
+          notes: "Right eye."
         }
       ],
       medications: [
@@ -337,6 +365,7 @@ const starterData = {
           notes: ""
         }
       ],
+      procedures: [],
       medications: [],
       vitals: [],
       careTeam: [],
@@ -454,6 +483,7 @@ function normalizeState(candidate) {
   nextState.people.forEach((person) => {
     person.demographics = person.demographics || {};
     person.diagnoses = normalizeDiagnoses(person.diagnoses);
+    person.procedures = person.procedures || [];
     person.medications = normalizeMedications(person.medications);
     person.vitals = person.vitals || [];
     person.careTeam = person.careTeam || [];
@@ -861,6 +891,13 @@ function essentialItems(person) {
       tab: "conditions"
     },
     {
+      label: "Prior surgeries/procedures",
+      complete: person.procedures.length > 0,
+      detail: person.procedures.length ? `${person.procedures.length} surgery/procedure record${person.procedures.length === 1 ? "" : "s"} added.` : "Add prior surgeries, procedures, dates, and locations.",
+      action: "add-section-record",
+      tab: "procedures"
+    },
+    {
       label: "Primary doctor or care team",
       complete: Boolean(primaryCare),
       detail: primaryCare ? `${primaryCare.name || "Care team member"}${primaryCare.phone ? `, ${primaryCare.phone}` : ""}` : "Add primary care, specialists, and key phone numbers.",
@@ -934,7 +971,7 @@ function renderSparkline(points, key) {
 
 function recordCard(record, collection) {
   const title = record.name || record.title || record.type || record.date || "Untitled record";
-  const subtitle = collection === "vitals" ? vitalSubtitle(record) : record.role || record.dose || record.status || record.clinician || record.source || record.phone || "";
+  const subtitle = collection === "vitals" ? vitalSubtitle(record) : procedureSubtitle(record, collection) || record.role || record.dose || record.status || record.clinician || record.source || record.phone || "";
   const body = collection === "medications" ? medicationBody(record) : record.notes || record.reason || record.outcome || record.preference || record.address || record.location || "";
   const date = record.date || record.startDate || record.onsetDate || "";
   const fileInfo = collection === "documents" && record.fileId
@@ -968,6 +1005,7 @@ function collectionLabel(collection) {
     medications: "Medication",
     vitals: "Vital",
     diagnoses: "Condition",
+    procedures: "Procedure",
     careTeam: "Care team",
     visits: "Visit",
     documents: "Document",
@@ -1008,6 +1046,15 @@ function vitalSubtitle(record) {
     record.glucose ? `Glucose ${record.glucose}` : "",
     record.oxygen ? `O2 ${record.oxygen}%` : "",
     record.pain ? `Pain ${record.pain}/10` : ""
+  ].filter(Boolean).join(" | ");
+}
+
+function procedureSubtitle(record, collection) {
+  if (collection !== "procedures") return "";
+  return [
+    record.facility,
+    record.location,
+    record.clinician
   ].filter(Boolean).join(" | ");
 }
 
@@ -1130,6 +1177,7 @@ addPersonBtn.addEventListener("click", () => {
     diagnoses: [],
     medications: [],
     vitals: [],
+    procedures: [],
     careTeam: [],
     visits: [],
     documents: [],
@@ -1448,6 +1496,7 @@ function renderEmergencyPacket(person) {
         ])}
       </div>
       ${packetList("Conditions", person.diagnoses || [], formatCondition)}
+      ${packetList("Surgeries/Procedures", person.procedures || [], formatProcedure)}
       ${packetList("Current Medications", person.medications.filter((med) => (med.status || "Active") === "Active"), (med) => `${med.name || "Unnamed"} - ${med.dose || "dose not recorded"} - ${med.schedule || "schedule not recorded"}${med.reason ? ` (${med.reason})` : ""}`)}
       ${packetList("Recent Vitals", [...(person.vitals || [])].sort((a, b) => vitalTimestamp(b) - vitalTimestamp(a)).slice(0, 3), (vital) => `${formatDate(vital.date)} ${vital.time || ""} - ${vitalSubtitle(vital) || "details not recorded"}`)}
       ${packetList("Care Team", person.careTeam, (care) => `${care.name || "Unnamed"} - ${care.role || "role not recorded"} - ${care.phone || "phone not recorded"}`)}
@@ -1486,6 +1535,10 @@ function formatCondition(condition) {
   if (typeof condition === "string") return condition;
   const detail = [condition.status, condition.clinician].filter(Boolean).join(", ");
   return `${condition.name || "Unnamed condition"}${detail ? ` - ${detail}` : ""}`;
+}
+
+function formatProcedure(procedure) {
+  return `${formatDate(procedure.date)} - ${procedure.name || "Unnamed procedure"}${procedure.location ? ` - ${procedure.location}` : ""}${procedure.facility ? ` - ${procedure.facility}` : ""}`;
 }
 
 function vitalTimestamp(record) {

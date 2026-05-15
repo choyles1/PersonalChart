@@ -30,17 +30,18 @@ Use fictional data and try these workflows:
 2. Open Essential intake and fill missing items.
 3. Add a medication, then edit it and change the status.
 4. Add a condition.
-5. Add vitals and review trend cards.
-6. Add a care team member.
-7. Add a legal/DNR/POLST note.
-8. Upload a fake image or PDF in Documents.
-9. Preview the uploaded document.
-10. Open Emergency packet and print/save as PDF.
-11. Create an encrypted backup.
-12. Restore the encrypted backup in a different browser profile.
-13. Enable the development vault.
-14. Lock and unlock the vault.
-15. Use Secure documents after the vault is enabled.
+5. Add a prior surgery/procedure with date and location.
+6. Add vitals and review trend cards.
+7. Add a care team member.
+8. Add a legal/DNR/POLST note.
+9. Upload a fake image or PDF in Documents.
+10. Preview the uploaded document.
+11. Open Emergency packet and print/save as PDF.
+12. Create an encrypted backup.
+13. Restore the encrypted backup in a different browser profile.
+14. Enable the development vault.
+15. Lock and unlock the vault.
+16. Use Secure documents after the vault is enabled.
 
 ## Important Notes
 
