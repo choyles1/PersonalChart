@@ -12,7 +12,7 @@ PersonalChart is a local-first personal health record concept for caregivers and
 - Vault auto-lock after inactivity or when the app moves to the background
 - Secure existing documents migration for older unencrypted IndexedDB file blobs
 - Demographics, allergies, emergency contacts, baseline status
-- Medications, conditions, surgeries/procedures, care team, visits, documents, resources, and legal/end-of-life records
+- Medications, conditions, surgeries/procedures, shots/vaccines, insurance, care team, visits, documents, resources, and legal/end-of-life records
 - Medication active/paused/discontinued status fields and change history
 - Vitals tracking with trend cards for blood pressure, pulse, weight, glucose, oxygen, and pain
 - Edit and delete controls for record correction
@@ -21,6 +21,7 @@ PersonalChart is a local-first personal health record concept for caregivers and
 - Image thumbnails and in-app document preview for stored image/PDF files
 - Printable Emergency Packet for urgent handoffs
 - Password-protected portable backup file using browser Web Crypto, including stored document files
+- Password-protected one-person export/import for sharing a single profile across trusted people/devices
 - Local-only storage in the current browser
 
 ## Run Locally

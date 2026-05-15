@@ -2,6 +2,7 @@ const STORAGE_KEY = "personalchart.dev.v1";
 const VAULT_META_KEY = "personalchart.vault.meta.v1";
 const VAULT_STATE_ID = "app-state";
 const BACKUP_FORMAT = "personalchart.backup.v1";
+const PERSON_EXPORT_FORMAT = "personalchart.person.v1";
 const DB_NAME = "personalchart-files";
 const DB_VERSION = 2;
 const FILE_STORE = "files";
@@ -84,6 +85,41 @@ const sectionConfig = {
       ["clinician", "Clinician/surgeon"],
       ["reason", "Reason"],
       ["outcome", "Outcome"],
+      ["notes", "Notes", "textarea"]
+    ]
+  },
+  immunizations: {
+    title: "Shots and vaccines",
+    addLabel: "Add shot/vaccine",
+    collection: "immunizations",
+    fields: [
+      ["name", "Vaccine/shot"],
+      ["date", "Date received", "date"],
+      ["location", "Location"],
+      ["provider", "Provider/pharmacy"],
+      ["manufacturer", "Manufacturer/brand"],
+      ["lotNumber", "Lot number"],
+      ["nextDue", "Next due", "date"],
+      ["notes", "Notes", "textarea"]
+    ]
+  },
+  insurance: {
+    title: "Insurance",
+    addLabel: "Add insurance",
+    collection: "insurance",
+    fields: [
+      ["type", "Insurance type"],
+      ["planName", "Plan name"],
+      ["memberId", "Member ID"],
+      ["groupNumber", "Group number"],
+      ["policyholder", "Policyholder"],
+      ["relationship", "Relationship"],
+      ["phone", "Phone"],
+      ["claimsAddress", "Claims address", "textarea"],
+      ["effectiveDate", "Effective date", "date"],
+      ["renewalDate", "Renewal/expiration date", "date"],
+      ["caseManager", "Case manager/contact"],
+      ["priorAuthNotes", "Prior authorization notes", "textarea"],
       ["notes", "Notes", "textarea"]
     ]
   },
@@ -205,6 +241,37 @@ const starterData = {
           reason: "Vision impairment",
           outcome: "Completed without complications",
           notes: "Right eye."
+        }
+      ],
+      immunizations: [
+        {
+          id: "immunization-1",
+          name: "Influenza vaccine",
+          date: "2025-10-03",
+          location: "Springfield, IL",
+          provider: "Lakeview Pharmacy",
+          manufacturer: "",
+          lotNumber: "",
+          nextDue: "2026-10-01",
+          notes: "Annual flu shot."
+        }
+      ],
+      insurance: [
+        {
+          id: "insurance-1",
+          type: "Medicare",
+          planName: "Original Medicare",
+          memberId: "Sample only",
+          groupNumber: "",
+          policyholder: "Martha Ellis",
+          relationship: "Self",
+          phone: "(800) 633-4227",
+          claimsAddress: "",
+          effectiveDate: "2007-08-01",
+          renewalDate: "",
+          caseManager: "",
+          priorAuthNotes: "",
+          notes: "Fictional sample data only."
         }
       ],
       medications: [
@@ -366,6 +433,8 @@ const starterData = {
         }
       ],
       procedures: [],
+      immunizations: [],
+      insurance: [],
       medications: [],
       vitals: [],
       careTeam: [],
@@ -396,6 +465,8 @@ const secureDocsBtn = document.querySelector("#secureDocsBtn");
 const essentialIntakeBtn = document.querySelector("#essentialIntakeBtn");
 const printReportBtn = document.querySelector("#printReportBtn");
 const emergencyPacketBtn = document.querySelector("#emergencyPacketBtn");
+const exportPersonBtn = document.querySelector("#exportPersonBtn");
+const importPersonInput = document.querySelector("#importPersonInput");
 const exportBackupBtn = document.querySelector("#exportBackupBtn");
 const importBackupInput = document.querySelector("#importBackupInput");
 const previewDialog = document.querySelector("#previewDialog");
@@ -484,6 +555,8 @@ function normalizeState(candidate) {
     person.demographics = person.demographics || {};
     person.diagnoses = normalizeDiagnoses(person.diagnoses);
     person.procedures = person.procedures || [];
+    person.immunizations = person.immunizations || [];
+    person.insurance = person.insurance || [];
     person.medications = normalizeMedications(person.medications);
     person.vitals = person.vitals || [];
     person.careTeam = person.careTeam || [];
@@ -898,6 +971,20 @@ function essentialItems(person) {
       tab: "procedures"
     },
     {
+      label: "Shots and vaccines",
+      complete: person.immunizations.length > 0,
+      detail: person.immunizations.length ? `${person.immunizations.length} immunization record${person.immunizations.length === 1 ? "" : "s"} added.` : "Add flu, COVID, pneumonia, shingles, tetanus, and other vaccine dates.",
+      action: "add-section-record",
+      tab: "immunizations"
+    },
+    {
+      label: "Insurance coverage",
+      complete: person.insurance.length > 0,
+      detail: person.insurance.length ? `${person.insurance.length} insurance record${person.insurance.length === 1 ? "" : "s"} added.` : "Add Medicare, Medicaid, supplemental, commercial, prescription, dental, or vision coverage.",
+      action: "add-section-record",
+      tab: "insurance"
+    },
+    {
       label: "Primary doctor or care team",
       complete: Boolean(primaryCare),
       detail: primaryCare ? `${primaryCare.name || "Care team member"}${primaryCare.phone ? `, ${primaryCare.phone}` : ""}` : "Add primary care, specialists, and key phone numbers.",
@@ -971,7 +1058,7 @@ function renderSparkline(points, key) {
 
 function recordCard(record, collection) {
   const title = record.name || record.title || record.type || record.date || "Untitled record";
-  const subtitle = collection === "vitals" ? vitalSubtitle(record) : procedureSubtitle(record, collection) || record.role || record.dose || record.status || record.clinician || record.source || record.phone || "";
+  const subtitle = collection === "vitals" ? vitalSubtitle(record) : procedureSubtitle(record, collection) || immunizationSubtitle(record, collection) || insuranceSubtitle(record, collection) || record.role || record.dose || record.status || record.clinician || record.source || record.phone || "";
   const body = collection === "medications" ? medicationBody(record) : record.notes || record.reason || record.outcome || record.preference || record.address || record.location || "";
   const date = record.date || record.startDate || record.onsetDate || "";
   const fileInfo = collection === "documents" && record.fileId
@@ -1006,6 +1093,8 @@ function collectionLabel(collection) {
     vitals: "Vital",
     diagnoses: "Condition",
     procedures: "Procedure",
+    immunizations: "Vaccine",
+    insurance: "Insurance",
     careTeam: "Care team",
     visits: "Visit",
     documents: "Document",
@@ -1055,6 +1144,24 @@ function procedureSubtitle(record, collection) {
     record.facility,
     record.location,
     record.clinician
+  ].filter(Boolean).join(" | ");
+}
+
+function immunizationSubtitle(record, collection) {
+  if (collection !== "immunizations") return "";
+  return [
+    record.provider,
+    record.location,
+    record.nextDue ? `Next due ${formatDate(record.nextDue)}` : ""
+  ].filter(Boolean).join(" | ");
+}
+
+function insuranceSubtitle(record, collection) {
+  if (collection !== "insurance") return "";
+  return [
+    record.planName,
+    record.memberId ? `ID ${record.memberId}` : "",
+    record.phone
   ].filter(Boolean).join(" | ");
 }
 
@@ -1178,6 +1285,8 @@ addPersonBtn.addEventListener("click", () => {
     medications: [],
     vitals: [],
     procedures: [],
+    immunizations: [],
+    insurance: [],
     careTeam: [],
     visits: [],
     documents: [],
@@ -1219,6 +1328,8 @@ emergencyPacketBtn.addEventListener("click", () => {
   document.querySelectorAll(".tab").forEach((item) => item.classList.remove("is-active"));
   renderEmergencyPacket(activePerson());
 });
+exportPersonBtn.addEventListener("click", exportEncryptedPerson);
+importPersonInput.addEventListener("change", importEncryptedPerson);
 exportBackupBtn.addEventListener("click", exportEncryptedBackup);
 importBackupInput.addEventListener("change", importEncryptedBackup);
 workspace.addEventListener("click", async (event) => {
@@ -1497,6 +1608,8 @@ function renderEmergencyPacket(person) {
       </div>
       ${packetList("Conditions", person.diagnoses || [], formatCondition)}
       ${packetList("Surgeries/Procedures", person.procedures || [], formatProcedure)}
+      ${packetList("Shots/Vaccines", person.immunizations || [], formatImmunization)}
+      ${packetList("Insurance", person.insurance || [], formatInsurance)}
       ${packetList("Current Medications", person.medications.filter((med) => (med.status || "Active") === "Active"), (med) => `${med.name || "Unnamed"} - ${med.dose || "dose not recorded"} - ${med.schedule || "schedule not recorded"}${med.reason ? ` (${med.reason})` : ""}`)}
       ${packetList("Recent Vitals", [...(person.vitals || [])].sort((a, b) => vitalTimestamp(b) - vitalTimestamp(a)).slice(0, 3), (vital) => `${formatDate(vital.date)} ${vital.time || ""} - ${vitalSubtitle(vital) || "details not recorded"}`)}
       ${packetList("Care Team", person.careTeam, (care) => `${care.name || "Unnamed"} - ${care.role || "role not recorded"} - ${care.phone || "phone not recorded"}`)}
@@ -1539,6 +1652,14 @@ function formatCondition(condition) {
 
 function formatProcedure(procedure) {
   return `${formatDate(procedure.date)} - ${procedure.name || "Unnamed procedure"}${procedure.location ? ` - ${procedure.location}` : ""}${procedure.facility ? ` - ${procedure.facility}` : ""}`;
+}
+
+function formatImmunization(immunization) {
+  return `${formatDate(immunization.date)} - ${immunization.name || "Unnamed vaccine"}${immunization.provider ? ` - ${immunization.provider}` : ""}${immunization.nextDue ? ` - next due ${formatDate(immunization.nextDue)}` : ""}`;
+}
+
+function formatInsurance(insurance) {
+  return `${insurance.type || "Insurance"} - ${insurance.planName || "plan not recorded"}${insurance.memberId ? ` - ID ${insurance.memberId}` : ""}${insurance.phone ? ` - ${insurance.phone}` : ""}`;
 }
 
 function vitalTimestamp(record) {
@@ -1635,6 +1756,134 @@ async function exportEncryptedBackup() {
   URL.revokeObjectURL(anchor.href);
 }
 
+async function exportEncryptedPerson() {
+  const person = activePerson();
+  if (!person) return;
+  const password = prompt(`Create a password for ${person.demographics.fullName || "this person"}'s encrypted export. This password is not stored.`);
+  if (!password) return;
+  const allFiles = await getAllStoredFiles();
+  const personFileIds = new Set((person.documents || []).map((document) => document.fileId).filter(Boolean));
+  const files = await Promise.all(allFiles.filter((file) => personFileIds.has(file.id)).map(serializeStoredFile));
+  const payload = new TextEncoder().encode(JSON.stringify({
+    person,
+    files,
+    exportedAt: new Date().toISOString(),
+    app: "PersonalChart",
+    format: PERSON_EXPORT_FORMAT
+  }));
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveKey(password, salt);
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, payload);
+  const exportFile = {
+    format: PERSON_EXPORT_FORMAT,
+    createdAt: new Date().toISOString(),
+    patientName: person.demographics.fullName || "Unnamed profile",
+    documentCount: files.length,
+    kdf: "PBKDF2-SHA256-250000",
+    cipher: "AES-GCM",
+    salt: toBase64(salt),
+    iv: toBase64(iv),
+    data: toBase64(new Uint8Array(encrypted))
+  };
+  const blob = new Blob([JSON.stringify(exportFile, null, 2)], { type: "application/json" });
+  const anchor = document.createElement("a");
+  anchor.href = URL.createObjectURL(blob);
+  anchor.download = `personalchart-person-${slugify(person.demographics.fullName || "profile")}-${new Date().toISOString().slice(0, 10)}.pchart-person`;
+  anchor.click();
+  URL.revokeObjectURL(anchor.href);
+}
+
+async function importEncryptedPerson(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  const password = prompt("Enter the person export password.");
+  if (!password) return;
+  try {
+    const exportFile = JSON.parse(await file.text());
+    if (exportFile.format !== PERSON_EXPORT_FORMAT) throw new Error("Unsupported person export format.");
+    const key = await deriveKey(password, fromBase64(exportFile.salt));
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: fromBase64(exportFile.iv) },
+      key,
+      fromBase64(exportFile.data)
+    );
+    const payload = JSON.parse(new TextDecoder().decode(decrypted));
+    const importedPerson = normalizeState({ activePersonId: payload.person.id, people: [payload.person] }).people[0];
+    const importedFiles = payload.files || [];
+    const existingIndex = state.people.findIndex((person) => person.id === importedPerson.id || person.demographics.fullName === importedPerson.demographics.fullName);
+    const action = choosePersonImportAction(importedPerson, existingIndex, importedFiles.length, exportFile.createdAt);
+    if (!action) return;
+    const finalPerson = action === "new" ? clonePersonWithNewIds(importedPerson) : importedPerson;
+    if (action === "replace" && existingIndex >= 0) {
+      await removePersonDocumentFiles(state.people[existingIndex]);
+      state.people[existingIndex] = finalPerson;
+    } else if (action === "merge" && existingIndex >= 0) {
+      state.people[existingIndex] = mergePersonRecords(state.people[existingIndex], finalPerson);
+    } else {
+      state.people.push(finalPerson);
+    }
+    for (const storedFile of importedFiles) {
+      await putStoredFile(await deserializeStoredFile(storedFile));
+    }
+    state.activePersonId = finalPerson.id;
+    saveState();
+    render();
+    alert(`${finalPerson.demographics.fullName || "Person"} imported.`);
+  } catch (error) {
+    alert(`Person import failed: ${error.message}`);
+  }
+}
+
+function choosePersonImportAction(person, existingIndex, fileCount, createdAt) {
+  const name = person.demographics.fullName || "Unnamed profile";
+  const summary = `Import ${name}?\n\nExport date: ${createdAt ? new Date(createdAt).toLocaleString() : "Unknown"}\nDocuments: ${fileCount}`;
+  if (existingIndex < 0) {
+    return confirm(`${summary}\n\nThis will create a new profile.`) ? "new" : "";
+  }
+  const choice = prompt(`${summary}\n\nA matching profile already exists.\nType one option:\n\nnew = create separate copy\nreplace = replace existing profile\nmerge = merge records into existing profile`);
+  const normalized = (choice || "").trim().toLowerCase();
+  return ["new", "replace", "merge"].includes(normalized) ? normalized : "";
+}
+
+function clonePersonWithNewIds(person) {
+  return {
+    ...structuredClone(person),
+    id: `person-${crypto.randomUUID()}`,
+    demographics: {
+      ...person.demographics,
+      fullName: `${person.demographics.fullName || "Imported profile"} (Imported)`
+    }
+  };
+}
+
+function mergePersonRecords(existingPerson, importedPerson) {
+  const collections = ["diagnoses", "procedures", "immunizations", "insurance", "medications", "vitals", "careTeam", "visits", "documents", "resources", "legal"];
+  const merged = {
+    ...existingPerson,
+    demographics: {
+      ...existingPerson.demographics,
+      ...Object.fromEntries(Object.entries(importedPerson.demographics || {}).filter(([, value]) => value))
+    }
+  };
+  collections.forEach((collection) => {
+    const current = merged[collection] || [];
+    const incoming = importedPerson[collection] || [];
+    const currentIds = new Set(current.map((record) => record.id));
+    merged[collection] = [
+      ...current,
+      ...incoming.filter((record) => !currentIds.has(record.id))
+    ];
+  });
+  return merged;
+}
+
+async function removePersonDocumentFiles(person) {
+  const fileIds = (person.documents || []).map((document) => document.fileId).filter(Boolean);
+  await Promise.all(fileIds.map(deleteStoredFile));
+}
+
 async function importEncryptedBackup(event) {
   const file = event.target.files?.[0];
   event.target.value = "";
@@ -1729,6 +1978,14 @@ function fileTypeLabel(type = "") {
   if (type.startsWith("image/")) return "Image";
   if (type === "application/pdf") return "PDF";
   return "File";
+}
+
+function slugify(value) {
+  return String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "profile";
 }
 
 function formatDate(value) {

@@ -31,17 +31,21 @@ Use fictional data and try these workflows:
 3. Add a medication, then edit it and change the status.
 4. Add a condition.
 5. Add a prior surgery/procedure with date and location.
-6. Add vitals and review trend cards.
-7. Add a care team member.
-8. Add a legal/DNR/POLST note.
-9. Upload a fake image or PDF in Documents.
-10. Preview the uploaded document.
-11. Open Emergency packet and print/save as PDF.
-12. Create an encrypted backup.
-13. Restore the encrypted backup in a different browser profile.
-14. Enable the development vault.
-15. Lock and unlock the vault.
-16. Use Secure documents after the vault is enabled.
+6. Add a shot/vaccine with date, location, and next due date.
+7. Add insurance coverage using fictional member details.
+8. Add vitals and review trend cards.
+9. Add a care team member.
+10. Add a legal/DNR/POLST note.
+11. Upload a fake image or PDF in Documents.
+12. Preview the uploaded document.
+13. Open Emergency packet and print/save as PDF.
+14. Export one person into an encrypted `.pchart-person` file.
+15. Import the encrypted person file in another browser profile.
+16. Create an encrypted full backup.
+17. Restore the encrypted full backup in a different browser profile.
+18. Enable the development vault.
+19. Lock and unlock the vault.
+20. Use Secure documents after the vault is enabled.
 
 ## Important Notes
 

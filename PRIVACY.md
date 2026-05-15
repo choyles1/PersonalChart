@@ -9,6 +9,7 @@ PersonalChart is designed as a local-first personal health record prototype.
 - The app does not intentionally send health data to this project or to a cloud database.
 - App data is stored in the tester's browser/device.
 - Encrypted backup files are created and moved manually by the user.
+- Encrypted person export files are created and moved manually by the user.
 
 ## Tester Guidance
 
