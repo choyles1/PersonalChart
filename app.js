@@ -1263,12 +1263,17 @@ recordForm.addEventListener("submit", async (event) => {
   render();
 });
 
-document.querySelectorAll(".tab").forEach((tab) => {
-  tab.addEventListener("click", () => {
-    activeTab = tab.dataset.tab;
-    setActiveTabButton(activeTab);
-    renderWorkspace(activePerson());
-  });
+document.querySelector(".tabs").addEventListener("click", (event) => {
+  const tab = event.target.closest(".tab");
+  if (!tab) return;
+  const nextTab = tab.dataset.tab;
+  if (!sectionConfig[nextTab]) {
+    workspace.innerHTML = `<section class="panel"><div class="empty-state">This section is not available in the loaded app script. Refresh the page and try again.</div></section>`;
+    return;
+  }
+  activeTab = nextTab;
+  setActiveTabButton(activeTab);
+  renderWorkspace(activePerson());
 });
 
 function setActiveTabButton(tabName) {

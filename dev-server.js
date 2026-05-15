@@ -30,7 +30,10 @@ const server = http.createServer((request, response) => {
       return;
     }
 
-    response.writeHead(200, { "Content-Type": types[path.extname(filePath)] || "application/octet-stream" });
+    response.writeHead(200, {
+      "Content-Type": types[path.extname(filePath)] || "application/octet-stream",
+      "Cache-Control": "no-store, max-age=0"
+    });
     response.end(data);
   });
 });
