@@ -21,6 +21,7 @@ const sectionConfig = {
       ["address", "Address", "textarea"],
       ["phone", "Phone"],
       ["emergencyContact", "Emergency contact"],
+      ["emergencyContactPhone", "Emergency contact phone"],
       ["allergies", "Allergies", "textarea"],
       ["baseline", "Baseline status", "textarea"]
     ]
@@ -31,7 +32,7 @@ const sectionConfig = {
     collection: "medications",
     fields: [
       ["name", "Medication name"],
-      ["status", "Status"],
+      ["status", "Medication status", "select"],
       ["dose", "Dose"],
       ["schedule", "Schedule"],
       ["reason", "Reason"],
@@ -51,8 +52,7 @@ const sectionConfig = {
     fields: [
       ["date", "Date", "date"],
       ["time", "Time", "time"],
-      ["systolic", "Systolic BP"],
-      ["diastolic", "Diastolic BP"],
+      ["bloodPressure", "Blood pressure"],
       ["pulse", "Pulse"],
       ["weight", "Weight"],
       ["glucose", "Glucose"],
@@ -62,11 +62,11 @@ const sectionConfig = {
     ]
   },
   conditions: {
-    title: "Conditions",
-    addLabel: "Add condition",
+    title: "Diagnosis",
+    addLabel: "Add diagnosis",
     collection: "diagnoses",
     fields: [
-      ["name", "Condition"],
+      ["name", "Diagnosis"],
       ["status", "Status"],
       ["onsetDate", "Onset date", "date"],
       ["clinician", "Managing clinician"],
@@ -80,7 +80,7 @@ const sectionConfig = {
     fields: [
       ["name", "Surgery/procedure"],
       ["date", "Date", "date"],
-      ["location", "Location"],
+      ["bodyArea", "Body area"],
       ["facility", "Facility"],
       ["clinician", "Clinician/surgeon"],
       ["reason", "Reason"],
@@ -95,7 +95,7 @@ const sectionConfig = {
     fields: [
       ["name", "Immunization"],
       ["date", "Date received", "date"],
-      ["location", "Location"],
+      ["bodyArea", "Body area"],
       ["provider", "Provider/pharmacy"],
       ["manufacturer", "Manufacturer/brand"],
       ["lotNumber", "Lot number"],
@@ -143,7 +143,7 @@ const sectionConfig = {
     collection: "visits",
     fields: [
       ["date", "Date", "date"],
-      ["type", "Type"],
+      ["type", "Type", "select"],
       ["clinician", "Clinician"],
       ["reason", "Reason for visit", "textarea"],
       ["outcome", "Outcome/instructions", "textarea"],
@@ -168,7 +168,7 @@ const sectionConfig = {
     addLabel: "Add resource",
     collection: "resources",
     fields: [
-      ["type", "Type"],
+      ["type", "Type", "select"],
       ["name", "Name"],
       ["phone", "Phone"],
       ["address", "Address", "textarea"],
@@ -189,6 +189,15 @@ const sectionConfig = {
   }
 };
 
+const selectOptions = {
+  medications: {
+    status: ["Active", "On Hold", "Discontinued"]
+  },
+  resources: {
+    type: ["Funeral Home", "Home Care", "Home Health", "Hospital", "Misc. Facility", "Other", "Pharmacy", "Urgent Care"]
+  }
+};
+
 const starterData = {
   activePersonId: "person-martha",
   people: [
@@ -200,7 +209,8 @@ const starterData = {
         sex: "Female",
         address: "1420 Alder Lane, Springfield",
         phone: "(555) 014-7280",
-        emergencyContact: "Dana Ellis, daughter, (555) 018-4400",
+        emergencyContact: "Dana Ellis, daughter",
+        emergencyContactPhone: "(555)-018-4400",
         allergies: "Penicillin rash; codeine nausea",
         baseline: "Lives at home with daytime caregiver support. Uses walker. Mild short-term memory impairment."
       },
@@ -235,7 +245,7 @@ const starterData = {
           id: "procedure-1",
           name: "Cataract surgery",
           date: "2022-06-15",
-          location: "Springfield, IL",
+          bodyArea: "Right eye",
           facility: "Memorial Outpatient Surgery Center",
           clinician: "Dr. Patel",
           reason: "Vision impairment",
@@ -248,7 +258,7 @@ const starterData = {
           id: "immunization-1",
           name: "Influenza vaccine",
           date: "2025-10-03",
-          location: "Springfield, IL",
+          bodyArea: "Left arm",
           provider: "Lakeview Pharmacy",
           manufacturer: "",
           lotNumber: "",
@@ -327,6 +337,7 @@ const starterData = {
           time: "08:15",
           systolic: "138",
           diastolic: "78",
+          bloodPressure: "138/78",
           pulse: "72",
           weight: "146",
           glucose: "128",
@@ -340,6 +351,7 @@ const starterData = {
           time: "08:20",
           systolic: "132",
           diastolic: "76",
+          bloodPressure: "132/76",
           pulse: "70",
           weight: "145",
           glucose: "121",
@@ -410,7 +422,8 @@ const starterData = {
         sex: "Male",
         address: "1420 Alder Lane, Springfield",
         phone: "(555) 014-7281",
-        emergencyContact: "Dana Ellis, daughter, (555) 018-4400",
+        emergencyContact: "Dana Ellis, daughter",
+        emergencyContactPhone: "(555)-018-4400",
         allergies: "No known drug allergies",
         baseline: "Independent with most activities. Drives locally during daytime."
       },
@@ -549,20 +562,40 @@ async function persistVaultState() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+function isPhoneField(name) {
+  return /phone/i.test(name);
+}
+
+function formatPhoneNumber(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 10);
+  if (!digits) return "";
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)})-${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)})-${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function formatPhoneFields(record = {}) {
+  Object.keys(record).forEach((key) => {
+    if (isPhoneField(key)) record[key] = formatPhoneNumber(record[key]);
+  });
+  return record;
+}
+
 function normalizeState(candidate) {
   const nextState = candidate && Array.isArray(candidate.people) ? candidate : structuredClone(starterData);
   nextState.people.forEach((person) => {
     person.demographics = person.demographics || {};
+    formatPhoneFields(person.demographics);
     person.diagnoses = normalizeDiagnoses(person.diagnoses);
-    person.procedures = person.procedures || [];
-    person.immunizations = person.immunizations || [];
-    person.insurance = person.insurance || [];
+    person.procedures = normalizeProcedures(person.procedures);
+    person.immunizations = normalizeImmunizations(person.immunizations);
     person.medications = normalizeMedications(person.medications);
-    person.vitals = person.vitals || [];
-    person.careTeam = person.careTeam || [];
+    person.vitals = normalizeVitals(person.vitals);
+    person.careTeam = (person.careTeam || []).map(formatPhoneFields);
     person.visits = person.visits || [];
     person.documents = person.documents || [];
-    person.resources = person.resources || [];
+    person.insurance = (person.insurance || []).map(formatPhoneFields);
+    person.resources = (person.resources || []).map(formatPhoneFields);
     person.legal = person.legal || [];
   });
   nextState.activePersonId = nextState.activePersonId || nextState.people[0]?.id || "";
@@ -581,13 +614,34 @@ function normalizeMedications(medications = []) {
       }];
     return {
       ...medication,
-      status: medication.status || "Active",
+      status: medication.status === "Paused" ? "On Hold" : medication.status || "Active",
       stopDate: medication.stopDate || "",
       lastReviewed,
       changeReason: medication.changeReason || "",
       changeHistory
     };
   });
+}
+
+function normalizeVitals(vitals = []) {
+  return vitals.map((vital) => ({
+    ...vital,
+    bloodPressure: vital.bloodPressure || (vital.systolic && vital.diastolic ? `${vital.systolic}/${vital.diastolic}` : "")
+  }));
+}
+
+function normalizeProcedures(procedures = []) {
+  return procedures.map((procedure) => ({
+    ...procedure,
+    bodyArea: procedure.bodyArea || procedure.location || ""
+  }));
+}
+
+function normalizeImmunizations(immunizations = []) {
+  return immunizations.map((immunization) => ({
+    ...immunization,
+    bodyArea: immunization.bodyArea || immunization.location || ""
+  }));
 }
 
 function normalizeDiagnoses(diagnoses = []) {
@@ -777,16 +831,16 @@ function renderSummary(person) {
   const visits = person.visits.length;
   const docs = person.documents.length;
   const legalStatus = person.legal.find((item) => /dnr|polst|molst/i.test(item.type || ""))?.status || "Not recorded";
-  const conditions = person.diagnoses.map(conditionName).filter(Boolean);
+  const diagnoses = person.diagnoses.map(conditionName).filter(Boolean);
   patientSummary.innerHTML = `
     <article class="summary-tile"><span>Date of birth</span><b>${escapeHtml(formatDate(person.demographics.dateOfBirth))}</b></article>
     <article class="summary-tile"><span>Active meds</span><b>${meds}</b></article>
     <article class="summary-tile"><span>Visits</span><b>${visits}</b></article>
     <article class="summary-tile"><span>DNR/POLST</span><b>${escapeHtml(legalStatus)}</b></article>
     <article class="summary-tile"><span>Allergies</span><b>${escapeHtml(person.demographics.allergies || "None recorded")}</b></article>
-    <article class="summary-tile"><span>Emergency contact</span><b>${escapeHtml(person.demographics.emergencyContact || "Not recorded")}</b></article>
+    <article class="summary-tile"><span>Emergency contact</span><b>${escapeHtml(formatEmergencyContact(person) || "Not recorded")}</b></article>
     <article class="summary-tile"><span>Documents</span><b>${docs}</b></article>
-    <article class="summary-tile"><span>Conditions</span><b>${escapeHtml(conditions.join(", ") || "None recorded")}</b></article>
+    <article class="summary-tile"><span>Diagnosis</span><b>${escapeHtml(diagnoses.join(", ") || "None recorded")}</b></article>
   `;
 }
 
@@ -828,7 +882,8 @@ function renderRecords(person, config, records) {
         <article class="record-card"><h4>Baseline</h4><p>${escapeHtml(person.demographics.baseline || "Not recorded")}</p></article>
         <article class="record-card"><h4>Address</h4><p>${escapeHtml(person.demographics.address || "Not recorded")}</p></article>
         <article class="record-card"><h4>Phone</h4><p>${escapeHtml(person.demographics.phone || "Not recorded")}</p></article>
-        <article class="record-card"><h4>Conditions</h4><p>${escapeHtml((person.diagnoses || []).map(conditionName).filter(Boolean).join(", ") || "Not recorded")}</p></article>
+        <article class="record-card"><h4>Emergency contact</h4><p>${escapeHtml(formatEmergencyContact(person) || "Not recorded")}</p></article>
+        <article class="record-card"><h4>Diagnosis</h4><p>${escapeHtml((person.diagnoses || []).map(conditionName).filter(Boolean).join(", ") || "Not recorded")}</p></article>
       </div>`;
   }
 
@@ -859,7 +914,7 @@ function renderVitalsWorkspace(person, config) {
 
 function renderTrendDashboard(records) {
   const trendItems = [
-    ["Blood pressure", "systolic", (record) => record.systolic, "mmHg", (record) => bpValue(record)],
+    ["Blood pressure", "bloodPressure", bloodPressureSystolic, "mmHg", (record) => bpValue(record)],
     ["Pulse", "pulse", (record) => record.pulse, "bpm"],
     ["Weight", "weight", (record) => record.weight, "lb"],
     ["Glucose", "glucose", (record) => record.glucose, "mg/dL"],
@@ -937,8 +992,8 @@ function essentialItems(person) {
   return [
     {
       label: "Identity and emergency contact",
-      complete: Boolean(demographics.fullName && demographics.dateOfBirth && demographics.emergencyContact),
-      detail: demographics.emergencyContact || "Name, birth date, and emergency contact are the first handoff basics.",
+      complete: Boolean(demographics.fullName && demographics.dateOfBirth && demographics.emergencyContact && demographics.emergencyContactPhone),
+      detail: formatEmergencyContact(person) || "Name, birth date, emergency contact, and contact phone are the first handoff basics.",
       action: "edit-overview",
       tab: "overview"
     },
@@ -957,16 +1012,16 @@ function essentialItems(person) {
       tab: "medications"
     },
     {
-      label: "Conditions and diagnoses",
+      label: "Diagnosis",
       complete: person.diagnoses.length > 0,
-      detail: person.diagnoses.length ? `${person.diagnoses.length} condition${person.diagnoses.length === 1 ? "" : "s"} recorded.` : "Add active diagnoses and who manages them.",
+      detail: person.diagnoses.length ? `${person.diagnoses.length} diagnosis record${person.diagnoses.length === 1 ? "" : "s"} recorded.` : "Add active diagnoses and who manages them.",
       action: "add-section-record",
       tab: "conditions"
     },
     {
       label: "Prior surgeries/procedures",
       complete: person.procedures.length > 0,
-      detail: person.procedures.length ? `${person.procedures.length} surgery/procedure record${person.procedures.length === 1 ? "" : "s"} added.` : "Add prior surgeries, procedures, dates, and locations.",
+      detail: person.procedures.length ? `${person.procedures.length} surgery/procedure record${person.procedures.length === 1 ? "" : "s"} added.` : "Add prior surgeries, procedures, dates, and body areas.",
       action: "add-section-record",
       tab: "procedures"
     },
@@ -1091,9 +1146,9 @@ function collectionLabel(collection) {
   return {
     medications: "Medication",
     vitals: "Vital",
-    diagnoses: "Condition",
+    diagnoses: "Diagnosis",
     procedures: "Procedure",
-    immunizations: "Vaccine",
+    immunizations: "Immunization",
     insurance: "Insurance",
     careTeam: "Care team",
     visits: "Visit",
@@ -1142,7 +1197,7 @@ function procedureSubtitle(record, collection) {
   if (collection !== "procedures") return "";
   return [
     record.facility,
-    record.location,
+    record.bodyArea || record.location,
     record.clinician
   ].filter(Boolean).join(" | ");
 }
@@ -1151,7 +1206,7 @@ function immunizationSubtitle(record, collection) {
   if (collection !== "immunizations") return "";
   return [
     record.provider,
-    record.location,
+    record.bodyArea || record.location,
     record.nextDue ? `Next due ${formatDate(record.nextDue)}` : ""
   ].filter(Boolean).join(" | ");
 }
@@ -1165,6 +1220,11 @@ function insuranceSubtitle(record, collection) {
   ].filter(Boolean).join(" | ");
 }
 
+function formatEmergencyContact(person) {
+  const demographics = person.demographics || {};
+  return [demographics.emergencyContact, demographics.emergencyContactPhone].filter(Boolean).join(", ");
+}
+
 function openRecordDialog(tab, recordId = "") {
   const config = sectionConfig[tab];
   const person = activePerson();
@@ -1174,20 +1234,20 @@ function openRecordDialog(tab, recordId = "") {
   config.fields.forEach(([name, label, type = "text"]) => {
     const field = document.createElement("label");
     field.className = `field ${type === "textarea" ? "full" : ""}`;
-    field.innerHTML = `<span class="field-label">${label}</span>${fieldControl(name, type)}`;
+    field.innerHTML = `<span class="field-label">${label}</span>${fieldControl(name, type, tab)}`;
     formFields.appendChild(field);
   });
 
   if (tab === "overview") {
     config.fields.forEach(([name]) => {
       const input = formFields.querySelector(`[name="${name}"]`);
-      input.value = person.demographics[name] || "";
+      input.value = isPhoneField(name) ? formatPhoneNumber(person.demographics[name] || "") : person.demographics[name] || "";
     });
   } else if (existingRecord) {
     config.fields.forEach(([name, , type = "text"]) => {
       if (type === "file") return;
       const input = formFields.querySelector(`[name="${name}"]`);
-      input.value = existingRecord[name] || "";
+      input.value = isPhoneField(name) ? formatPhoneNumber(existingRecord[name] || "") : existingRecord[name] || "";
     });
     if (tab === "documents" && existingRecord.fileName) {
       const fileInput = formFields.querySelector(`[name="file"]`);
@@ -1203,11 +1263,22 @@ function openRecordDialog(tab, recordId = "") {
   dialog.showModal();
 }
 
-function fieldControl(name, type) {
+function fieldControl(name, type, tab) {
+  const options = selectOptions[tab]?.[name] || [];
+  if (type === "select" && options.length) {
+    return `<select name="${name}">${options.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("")}</select>`;
+  }
   if (type === "textarea") return `<textarea name="${name}"></textarea>`;
   if (type === "file") return `<input name="${name}" type="file" accept="image/*,application/pdf" capture="environment" />`;
-  return `<input name="${name}" type="${type}" />`;
+  if (isPhoneField(name)) return `<input name="${name}" type="tel" inputmode="numeric" autocomplete="tel" data-phone-field="true" />`;
+  return `<input name="${name}" type="${type === "select" ? "text" : type}" />`;
 }
+
+recordForm.addEventListener("input", (event) => {
+  const input = event.target.closest("[data-phone-field='true']");
+  if (!input) return;
+  input.value = formatPhoneNumber(input.value);
+});
 
 recordForm.addEventListener("submit", async (event) => {
   if (event.submitter?.value === "cancel") return;
@@ -1219,6 +1290,7 @@ recordForm.addEventListener("submit", async (event) => {
   const formData = new FormData(recordForm);
   const record = Object.fromEntries(formData.entries());
   delete record.file;
+  formatPhoneFields(record);
 
   if (tab === "overview") {
     person.demographics = { ...person.demographics, ...record };
@@ -1285,7 +1357,7 @@ addPersonBtn.addEventListener("click", () => {
   if (!fullName) return;
   const person = {
     id: `person-${crypto.randomUUID()}`,
-    demographics: { fullName, dateOfBirth: "", sex: "", address: "", phone: "", emergencyContact: "", allergies: "", baseline: "" },
+    demographics: { fullName, dateOfBirth: "", sex: "", address: "", phone: "", emergencyContact: "", emergencyContactPhone: "", allergies: "", baseline: "" },
     diagnoses: [],
     medications: [],
     vitals: [],
@@ -1602,7 +1674,7 @@ function renderEmergencyPacket(person) {
           ["Baseline", person.demographics.baseline]
         ])}
         ${packetSection("Emergency Contacts", [
-          ["Primary contact", person.demographics.emergencyContact],
+          ["Primary contact", formatEmergencyContact(person)],
           ["Primary care", primaryCare ? `${primaryCare.name || ""} ${primaryCare.phone || ""}` : "Not recorded"],
           ["Preferred hospital", hospital ? `${hospital.name || ""} ${hospital.phone || ""}` : "Not recorded"]
         ])}
@@ -1611,7 +1683,7 @@ function renderEmergencyPacket(person) {
           ["Hospital", hospital ? `${hospital.name || ""} - ${hospital.preference || hospital.address || ""}` : "Not recorded"]
         ])}
       </div>
-      ${packetList("Conditions", person.diagnoses || [], formatCondition)}
+      ${packetList("Diagnosis", person.diagnoses || [], formatCondition)}
       ${packetList("Surgeries/Procedures", person.procedures || [], formatProcedure)}
       ${packetList("Immunizations", person.immunizations || [], formatImmunization)}
       ${packetList("Insurance", person.insurance || [], formatInsurance)}
@@ -1652,15 +1724,17 @@ function conditionName(condition) {
 function formatCondition(condition) {
   if (typeof condition === "string") return condition;
   const detail = [condition.status, condition.clinician].filter(Boolean).join(", ");
-  return `${condition.name || "Unnamed condition"}${detail ? ` - ${detail}` : ""}`;
+  return `${condition.name || "Unnamed diagnosis"}${detail ? ` - ${detail}` : ""}`;
 }
 
 function formatProcedure(procedure) {
-  return `${formatDate(procedure.date)} - ${procedure.name || "Unnamed procedure"}${procedure.location ? ` - ${procedure.location}` : ""}${procedure.facility ? ` - ${procedure.facility}` : ""}`;
+  const bodyArea = procedure.bodyArea || procedure.location || "";
+  return `${formatDate(procedure.date)} - ${procedure.name || "Unnamed procedure"}${bodyArea ? ` - ${bodyArea}` : ""}${procedure.facility ? ` - ${procedure.facility}` : ""}`;
 }
 
 function formatImmunization(immunization) {
-  return `${formatDate(immunization.date)} - ${immunization.name || "Unnamed vaccine"}${immunization.provider ? ` - ${immunization.provider}` : ""}${immunization.nextDue ? ` - next due ${formatDate(immunization.nextDue)}` : ""}`;
+  const bodyArea = immunization.bodyArea || immunization.location || "";
+  return `${formatDate(immunization.date)} - ${immunization.name || "Unnamed immunization"}${bodyArea ? ` - ${bodyArea}` : ""}${immunization.provider ? ` - ${immunization.provider}` : ""}${immunization.nextDue ? ` - next due ${formatDate(immunization.nextDue)}` : ""}`;
 }
 
 function formatInsurance(insurance) {
@@ -1672,7 +1746,13 @@ function vitalTimestamp(record) {
 }
 
 function bpValue(record) {
-  return record.systolic && record.diastolic ? `${record.systolic}/${record.diastolic}` : "";
+  return record.bloodPressure || (record.systolic && record.diastolic ? `${record.systolic}/${record.diastolic}` : "");
+}
+
+function bloodPressureSystolic(record) {
+  const value = bpValue(record);
+  const match = String(value).match(/\d+/);
+  return match ? match[0] : "";
 }
 
 function formatTrendNumber(value) {
